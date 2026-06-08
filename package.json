@@ -1,0 +1,15 @@
+{
+  "name": "tip-tap-attack",
+  "version": "1.0.0",
+  "description": "Tip-Tap Attack - Jogo da Velha Tatico online (Node + Socket.io)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.3"
+  }
+}

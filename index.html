@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tip-Tap Attack</title>
+
+  <!--
+    ============================================================
+      TIP-TAP ATTACK — Menu inicial
+    ------------------------------------------------------------
+      Este arquivo tem 3 partes, na ordem:
+        1) ESTILOS   (CSS)  -> a aparência: cores, fontes, animações
+        2) ESTRUTURA (HTML) -> o conteúdo: título, menu e páginas
+        3) COMPORTAMENTO (JS)-> a navegação entre as telas
+    ============================================================
+  -->
+
+  <style>
+    /* =========================================================
+       1) ESTILOS (CSS)
+       ========================================================= */
+
+    /* --- 1.1 Fontes e paleta de cores ----------------------- */
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Major+Mono+Display&family=Sora:wght@600;700;800&display=swap');
+
+    :root{
+      --bg:    #0c0b10;   /* fundo da página        */
+      --panel: #16141d;   /* fundo dos painéis      */
+      --ink:   #ece9f5;   /* cor do texto principal */
+      --dim:   #8b85a3;   /* texto secundário (cinza)*/
+      --line:  #2a2738;   /* cor das bordas         */
+      --p1:    #2de2c4;   /* destaque ciano         */
+      --p2:    #ff5d8f;   /* destaque rosa          */
+      --mana:  #6ea8ff;   /* destaque azul          */
+      --gold:  #ffcf5c;   /* destaque dourado       */
+    }
+
+    /* --- 1.2 Reset e fundo da página ------------------------ */
+    *{ box-sizing:border-box; margin:0; padding:0 }
+
+    body{
+      background:var(--bg);
+      color:var(--ink);
+      font-family:'DM Mono', monospace;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      /* dois brilhos suaves nos cantos, dando profundidade ao fundo */
+      background-image:
+        radial-gradient(circle at 12% 8%,  rgba(45,226,196,.10), transparent 42%),
+        radial-gradient(circle at 88% 92%, rgba(255,93,143,.10), transparent 42%);
+    }
+
+    /* --- 1.3 Container central ------------------------------- */
+    .app{
+      width:100%;
+      max-width:520px;
+      margin:0 auto;
+      padding:24px 18px;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* --- 1.4 Título da aplicação ---------------------------- */
+    header{ text-align:center; margin:28px 0 34px }
+
+    .title{
+      font-family:'Major Mono Display', monospace;
+      font-size:40px;
+      line-height:1.1;
+      letter-spacing:.04em;
+    }
+    /* "TIP-TAP": parte calma do nome */
+    .title .tiptap{ color:var(--ink) }
+
+    /* "ATTACK": parte em destaque — gradiente em movimento + brilho
+       pulsante, passando a sensação futurista e inovadora */
+    .title .attack{
+      display:inline-block;
+      background:linear-gradient(90deg, var(--p1), var(--mana), var(--p2), var(--gold), var(--p1));
+      background-size:200% auto;                 /* gradiente "largo" para poder deslizar */
+      -webkit-background-clip:text;              /* recorta o gradiente no formato do texto */
+      background-clip:text;
+      -webkit-text-fill-color:transparent;       /* deixa o texto transparente p/ ver o gradiente */
+      /* duas animações ao mesmo tempo (definidas no bloco 1.7) */
+      animation: fluxo 4s linear infinite, brilho 2.2s ease-in-out infinite;
+    }
+
+    .tagline{
+      margin-top:10px;
+      font-size:10px;
+      letter-spacing:.26em;
+      text-transform:uppercase;
+      color:var(--dim);
+    }
+
+    /* --- 1.5 Telas (o painel branco/escuro de cada tela) ---- */
+    .screen{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:30px 26px;
+      text-align:center;
+      margin:auto 0;                 /* centraliza verticalmente no espaço livre */
+      display:flex;
+      flex-direction:column;
+    }
+    .screen h2{ font-family:'Sora'; font-weight:800; font-size:22px; margin-bottom:8px }
+    .screen p { color:var(--dim); font-size:12px; line-height:1.6; margin-bottom:22px }
+
+    /* --- 1.6 Botões (com animação de hover) ----------------- */
+    .bt{
+      position:relative;             /* base para o anel giratório (::before) */
+      width:100%;
+      font-family:'DM Mono';
+      font-size:13px;
+      padding:15px;
+      border-radius:11px;
+      border:1px solid var(--line);
+      background:#0e0d13;
+      color:var(--ink);
+      cursor:pointer;
+      transition:.18s ease;          /* faz o hover acontecer suavemente */
+    }
+    /* HOVER: ao passar o mouse, o botão "sobe" e ganha brilho */
+    .bt:hover{
+      transform:translateY(-2px);
+      border-color:var(--dim);
+      box-shadow:0 6px 18px rgba(0,0,0,.35);
+    }
+
+    /* ANEL GIRATÓRIO (somente na BORDA):
+       Um gradiente cônico colorido do tamanho exato do botão. A "máscara"
+       recorta o miolo e deixa visível apenas a faixa de 2px da borda —
+       então a luz gira contornando o botão, SEM preencher o fundo. */
+    .bt::before{
+      content:'';
+      position:absolute;
+      inset:0;                       /* mesmo tamanho do botão                */
+      border-radius:inherit;         /* mesmos cantos arredondados            */
+      padding:2px;                   /* espessura da borda colorida           */
+      /* cores em TODA a volta (sem trecho transparente) -> ao girar de forma
+         linear, o movimento fica uniforme em toda a borda. A 1ª e a última
+         cor são iguais (var(--p1)) para a volta fechar sem emenda visível. */
+      background:conic-gradient(from var(--angulo),
+                 var(--p1), var(--mana), var(--p2), var(--gold), var(--p1));
+      /* máscara: mostra a área toda MENOS o miolo -> sobra só a borda */
+      -webkit-mask:
+         linear-gradient(#000 0 0) content-box,
+         linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;    /* navegadores WebKit (Safari/Chrome)    */
+              mask-composite:exclude;/* padrão                                */
+      opacity:0;                     /* invisível enquanto não há hover        */
+      transition:opacity .25s ease;
+      pointer-events:none;           /* não atrapalha o clique no botão       */
+    }
+    /* no hover o anel aparece e GIRA infinitamente (animação no bloco 1.8) */
+    .bt:hover::before{
+      opacity:1;
+      animation: girar 1.4s linear infinite;
+    }
+    .menu .bt{ margin-top:11px }      /* espaço entre os botões do menu */
+    .back{ margin-top:26px }
+
+    /* Botão principal (Iniciar): dourado e com PULSO contínuo,
+       para chamar a atenção como ação principal */
+    .bt.primary{
+      background:var(--gold);
+      color:#241a00;
+      border-color:var(--gold);
+      font-weight:700;
+      animation: pulso 2.2s ease-in-out infinite;
+    }
+    .bt.primary:hover{
+      box-shadow:0 6px 22px rgba(255,207,92,.45);
+    }
+
+    /* --- 1.7 Páginas de destino (só o nome sobre o fundo) --- */
+    .page-title{
+      font-family:'Sora';
+      font-weight:800;
+      font-size:34px;
+      margin:40px 0;
+      background:linear-gradient(100deg, var(--p1), var(--mana), var(--gold));
+      -webkit-background-clip:text; background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+
+    /* --- 1.8 ANIMAÇÕES (todos os @keyframes juntos) --------- */
+
+    /* Declara "--angulo" como um ângulo de verdade. Sem isto o navegador
+       não consegue animar o giro do gradiente cônico do anel. */
+    /*@property --angulo{
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }*/
+
+    /* gira o anel do botão dando uma volta completa (0 -> 360 graus) */
+    @keyframes girar{
+      to{ --angulo:360deg }
+    }
+
+    /* desliza o gradiente do "ATTACK" da esquerda p/ direita */
+    @keyframes fluxo{
+      from{ background-position:0% center }
+      to  { background-position:200% center }
+    }
+
+    /* brilho pulsante (glow) ao redor do "ATTACK" */
+    @keyframes brilho{
+      0%, 100%{ filter:drop-shadow(0 0 5px rgba(110,168,255,.45)) }
+      50%     { filter:drop-shadow(0 0 16px rgba(255,93,143,.80)) }
+    }
+
+    /* pulso simples: o brilho do botão Iniciar "respira" */
+    @keyframes pulso{
+      0%, 100%{ box-shadow:0 0 0 0 rgba(255,207,92,0) }
+      50%     { box-shadow:0 0 18px 2px rgba(255,207,92,.5) }
+    }
+
+    /* --- 1.9 Utilitário ------------------------------------- */
+    .hidden{ display:none !important }   /* esconde uma tela */
+  </style>
+</head>
+
+<body>
+  <!-- =========================================================
+       2) ESTRUTURA (HTML)
+       ========================================================= -->
+  <div class="app">
+
+    <!-- 2.1 Cabeçalho com o título da aplicação -->
+    <header>
+      <h1 class="title">
+        <span class="tiptap">TIP-TAP</span>
+        <span class="attack">ATTACK</span>
+      </h1>
+      <div class="tagline">Presença Gamificada · Chamada por QR Code</div>
+    </header>
+
+    <!-- 2.2 MENU PRINCIPAL -->
+    <!-- Cada botão tem um atributo "data-go" que diz para qual tela ele leva -->
+    <div class="screen menu" id="menu">
+      <h2>Menu</h2>
+      <p>Escolha uma opção abaixo.</p>
+      <button class="bt primary" data-go="pgIniciar">▶ Iniciar</button>
+      <button class="bt"         data-go="pgConfig">⚙ Configurar</button>
+      <button class="bt"         data-go="pgRules">📖 Como jogar</button>
+      <button class="bt"         data-go="pgCredits">★ Créditos</button>
+    </div>
+
+    <!-- 2.3 PÁGINAS DE DESTINO (por enquanto: só o nome + voltar) -->
+    <div class="screen hidden" id="pgIniciar">
+      <div class="page-title">Iniciar</div>
+      <button class="bt back" data-go="menu">← Voltar</button>
+    </div>
+
+    <div class="screen hidden" id="pgConfig">
+      <div class="page-title">Configuração</div>
+      <button class="bt back" data-go="menu">← Voltar</button>
+    </div>
+
+    <div class="screen hidden" id="pgRules">
+      <div class="page-title">Como jogar</div>
+      <button class="bt back" data-go="menu">← Voltar</button>
+    </div>
+
+    <div class="screen hidden" id="pgCredits">
+      <div class="page-title">Créditos</div>
+      <button class="bt back" data-go="menu">← Voltar</button>
+    </div>
+
+  </div>
+
+  <!-- =========================================================
+       3) COMPORTAMENTO (JavaScript)
+       ========================================================= -->
+  <script>
+    // Lista com o id de todas as telas do app.
+    const TELAS = ['menu', 'pgIniciar', 'pgConfig', 'pgRules', 'pgCredits'];
+
+    // Mostra a tela escolhida e esconde todas as outras.
+    function mostrarTela(id){
+      TELAS.forEach(function(tela){
+        const elemento = document.getElementById(tela);
+        const ehAtela  = (tela === id);
+        // se NÃO for a tela desejada, adiciona a classe "hidden" (some);
+        // se for, remove a classe (aparece).
+        elemento.classList.toggle('hidden', !ehAtela);
+      });
+    }
+
+    // Liga TODOS os botões que têm "data-go": ao clicar, vão para a tela indicada.
+    document.querySelectorAll('[data-go]').forEach(function(botao){
+      botao.onclick = function(){
+        mostrarTela(botao.dataset.go);
+      };
+    });
+  </script>
+</body>
+</html>
