@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tip-Tap Attack</title>
+<style>
+  /* o app é quase todo desenhado no canvas. o css aqui só faz o fundo, o
+     quadro, e a caixa de nome (essa parte é html porque o teclado do
+     celular precisa de um input de verdade). */
+  body{ background:#0c0b10; margin:0; min-height:100vh; display:grid; place-items:center; font-family:monospace }
+  canvas{ border-radius:14px; max-width:100%; height:auto; touch-action:manipulation }
+
+  #telaEntrar{ position:fixed; inset:0; display:none; place-items:center; background:rgba(12,11,16,.92) }
+  #telaEntrar.mostrar{ display:grid }
+  .cartao{ background:#16141d; border:1px solid #2a2738; border-radius:16px; padding:26px; width:300px; max-width:86%; text-align:center; color:#ece9f5 }
+  .cartao h2{ font-size:18px; margin:0 0 8px }
+  .cartao p{ color:#8b85a3; font-size:12px; margin:0 0 16px }
+  .cartao input{ width:100%; box-sizing:border-box; padding:13px; border-radius:10px; border:1px solid #2a2738; background:#0e0d13; color:#ece9f5; font-family:monospace; font-size:16px; text-align:center; margin-bottom:12px }
+  .cartao button{ width:100%; padding:13px; border-radius:10px; border:none; background:#ffcf5c; color:#241a00; font-family:monospace; font-weight:bold; font-size:14px; cursor:pointer }
+</style>
+</head>
+<body>
+  <!-- é um quadro só; menu, torneio e jogo são desenhados aqui dentro -->
+  <canvas id="quadro" width="440" height="620"></canvas>
+
+  <!-- a caixa pra digitar o nome (aparece só na tela "entrar") -->
+  <div id="telaEntrar">
+    <div class="cartao">
+      <h2>Entrar no torneio</h2>
+      <p>sessão: <b id="entrarCodigo">—</b></p>
+      <input id="entrarNome" type="text" maxlength="20" placeholder="seu nome" autocomplete="off">
+      <button id="entrarBtn">Entrar</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
