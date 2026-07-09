@@ -1,5 +1,7 @@
-// o "árbitro": escuta os eventos dos jogadores e roda os confrontos do torneio.
-// é o único arquivo que fala com os clientes (io.emit); a lógica pura fica em nucleo/.
+// escuta os eventos dos jogadores e roda os confrontos do torneio
+// é o único arquivo que fala com os clientes (io.emit), a lógica pura fica em nucleo/
+
+
 import { novaPartida, aplicarJogada, viewDaPartida } from './nucleo/partida.js';
 import {
   abrirSessao, entrarSessao, iniciarTorneio, removerSocket,
@@ -10,8 +12,7 @@ import { registrarVencedor, confrontosProntos } from './nucleo/torneio.js';
 // deixa o código da sessão seguro: minúsculas, sem espaços, até 24 letras
 function normCodigo(code){ return (code||'sessao').toLowerCase().trim().slice(0,24) || 'sessao'; }
 
-// cada turno dura no máximo 30s. se o jogador não finalizar (saiu, ficou sem
-// internet, esqueceu), o servidor finaliza sozinho pra não travar o outro.
+// cada turno dura no máximo 30s. se o jogador não finalizar
 const TEMPO_DO_TURNO = Number(process.env.TURNO_MS) || 30000;
 
 export function ligarArbitro(io){
@@ -32,8 +33,7 @@ export function ligarArbitro(io){
     if(p.o.sid) io.to(p.o.sid).emit('state', { ...viewDaPartida(p.state, 'o'), nomes });
   }
 
-  // relógio do turno: quando começa a vez de alguém, ligo um timer de 30s.
-  // se a pessoa finalizar antes, a gente religa pro próximo (lá embaixo).
+  // relógio do turno: quando começa a vez de alguém, ligo um timer de 30s
   function armarTimerDoTurno(s, confrontoId){
     const p = s.partidas.get(confrontoId);
     if(!p) return;
@@ -44,10 +44,10 @@ export function ligarArbitro(io){
   function finalizarTurnoAutomatico(s, confrontoId){
     const p = s.partidas.get(confrontoId);
     if(!p || p.state.over) return;
-    aplicarJogada(p.state, p.state.turn, { type:'endTurn' });   // fecha a vez do jogador atual
+    aplicarJogada(p.state, p.state.turn, { type:'endTurn' });   
     emitirPartida(s, confrontoId);
     if(p.state.over) resolverFimDePartida(s, confrontoId);
-    else             armarTimerDoTurno(s, confrontoId);          // já liga o timer do próximo
+    else             armarTimerDoTurno(s, confrontoId);          
   }
 
   // começa toda partida cujos dois jogadores já estão definidos
@@ -59,14 +59,14 @@ export function ligarArbitro(io){
       s.ondeEsta.set(c.a.id, { confrontoId:c.id, papel:'x' });
       s.ondeEsta.set(c.b.id, { confrontoId:c.id, papel:'o' });
       emitirPartida(s, c.id);
-      armarTimerDoTurno(s, c.id);     // liga o relógio do primeiro turno
+      armarTimerDoTurno(s, c.id);    
     }
   }
 
   // partida acabou: marca o vencedor e avança a chave (se empatou de vez, refaz)
   function resolverFimDePartida(s, confrontoId){
     const p = s.partidas.get(confrontoId); if(!p) return;
-    clearTimeout(p.timer);             // acabou (ou vai refazer): desliga o relógio
+    clearTimeout(p.timer);            
     const jogo = p.state;
     if(jogo.winner === 'x' || jogo.winner === 'o'){
       const vencedor = jogo.winner === 'x' ? p.x : p.o;
@@ -75,12 +75,12 @@ export function ligarArbitro(io){
       s.ondeEsta.delete(p.x.id);
       s.ondeEsta.delete(p.o.id);
       if(s.torneio.campeao) s.fase = 'fim';
-      iniciarPartidasProntas(s);     // já começa o confronto da próxima rodada
+      iniciarPartidasProntas(s);    
       emitirSessao(s.code);
     } else {
-      p.state = novaPartida();       // empate total nas peças -> jogam de novo
+      p.state = novaPartida();      
       emitirPartida(s, confrontoId);
-      armarTimerDoTurno(s, confrontoId);   // partida nova, liga o relógio de novo
+      armarTimerDoTurno(s, confrontoId);  
     }
   }
 

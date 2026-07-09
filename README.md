@@ -1,100 +1,73 @@
-# Tip-Tap Attack — Torneio de Jogo da Velha Tático
+# Tip-Tap Attack: Torneio de Jogo da Velha Tático
 
-Um **torneio de jogo da velha 4×4** para a sala de aula, em tempo real, usando **Node + Socket.io**.
-O professor projeta um **QR Code**, os alunos entram pelo celular digitando o nome, e o sistema
-monta o **chaveamento mata-a-mata** sozinho. A lista de presença pode ser **baixada em CSV**.
+Esse é um projeto de Lógica de Programação. Ele junta duas coisas que funcionam acopladas: um jogo
+da velha 4×4 com cartas e um sistema de presença para a sala de aula.
 
-O servidor é **autoritativo**: ele guarda o estado e valida cada jogada, então não dá pra
-trapacear e os dois lados nunca dessincronizam. Todo o jogo é desenhado num **canvas** (estilo
-p5.js), sem framework e sem build.
+A presença funciona assim: o professor abre o app, que mostra um QR Code. O aluno escaneia, digita
+o nome e entra. Só de entrar, ele já fica na lista de presentes, que o professor pode baixar em CSV
+no fim. Como o aluno entra para jogar, a presença acaba sendo registrada enquanto ele joga, sem
+precisar de um momento separado só para isso.
+
+O jogo em si é um jogo da velha 4×4 (vence quem alinha 3 peças) com cartas que gastam mana, jogado
+num torneio mata-a-mata entre a turma.
+
+## Acessar
+
+O app está hospedado na Vercel: https://tip-tap-attack.ruhtra.work. Dá para usar direto por aí ou
+baixar e rodar localmente (seção "Como rodar", no fim).
+
+## Estrutura das pastas
+
+A ideia da organização é separar a lógica do resto (servidor, tela, internet):
 
 ```
 tip-tap-attack/
-├── server.js       ← sobe o Express + Socket.io (fininho)
-├── arbitro.js      ← orquestra sessão/torneio; único que fala com os clientes
-├── nucleo/         ← a lógica pura (sem rede, sem tela)
-│   ├── partida.js  ← regras do jogo
-│   ├── torneio.js  ← chaveamento mata-a-mata
-│   └── sessao.js   ← sessões do professor (lobby, reconexão)
-├── ui/             ← o cliente (canvas)
-│   ├── index.html  ← um <canvas> + a caixa de nome
-│   └── js/         ← estado.js · desenho.js · telas.js · rede.js · app.js
-├── docs/           ← documentação (base do vídeo)
-└── package.json
+├── server.js       ← sobe o servidor (Express serve a tela + Socket.io pro tempo real)
+├── arbitro.js      ← ouve os jogadores, chama a lógica e devolve o resultado
+├── nucleo/         ← a lógica de programação
+│   ├── partida.js  ← regras do jogo: tabuleiro, vitória, mana, cartas, velha
+│   ├── torneio.js  ← chaveamento mata-a-mata: sorteio, byes, avançar o vencedor
+│   └── sessao.js   ← sessões da sala: lista de alunos e reconexão
+├── ui/             ← a tela que o aluno vê (canvas puro, sem framework)
+└── docs/           ← explicação escrita de cada fluxo (base do vídeo)
 ```
 
----
+## A lógica de programação está no `nucleo/`
 
-## 1. Rodar localmente
+É a parte que interessa para a disciplina. Os arquivos do `nucleo/` têm só funções puras: recebem
+um estado, aplicam uma regra e devolvem o resultado, sem mexer com internet nem com tela. São
+vetores, laços, condicionais e funções, então essa parte dá para ler e testar isolada do resto do
+app.
 
-Pré-requisito: **Node.js 18+** (https://nodejs.org).
+- `partida.js`: as regras do jogo. O tabuleiro 4×4 é um vetor de 16 posições, e a checagem de
+  vitória percorre o tabuleiro procurando 3 peças em linha nas quatro direções.
+- `torneio.js`: monta a árvore do mata-a-mata. Embaralha os jogadores, trata número ímpar com
+  "byes" e vai passando o vencedor de cada partida para a rodada seguinte, até sobrar o campeão.
+- `sessao.js`: guarda quem está na sala e cuida da reconexão. Cada navegador tem um id fixo, então
+  quem cai e volta reentra na mesma partida.
+
+## O `server.js` e o `arbitro.js`
+
+Esses dois pegam a lógica do `nucleo/` e a transformam num app que roda em rede. O `server.js` usa
+o Express para servir a pasta `ui/` e o Socket.io para a comunicação em tempo real. O `arbitro.js`
+fica no meio: recebe as jogadas dos alunos, chama o `nucleo/` para validar e manda o estado
+atualizado de volta para os jogadores. É nele também que fica o limite de 30s por turno, para uma
+partida não travar se alguém sair no meio.
+
+Uma decisão do projeto é que o servidor é quem decide tudo. O cliente só manda a jogada e desenha a
+resposta que volta. Toda a validação acontece no servidor, o que evita trapaça e mantém os dois
+lados sempre com o mesmo estado.
+
+## Como rodar
+
+Precisa de Node.js 18+. Dentro da pasta:
 
 ```bash
-cd tip-tap-attack
 npm install
 npm start
 ```
 
-Você verá:
-
-```
-TIP-TAP ATTACK rodando em  http://localhost:3000
-```
-
-Abra `http://localhost:3000`. Para testar sozinho, abra o **painel** numa aba e
-`http://localhost:3000/?sessao=CODIGO` em duas outras abas (dois "alunos").
-
----
-
-## 2. Usar em sala (pela internet)
-
-O `localhost` só funciona na sua máquina. Para os alunos entrarem pelo celular, exponha o
-servidor à internet.
-
-### Opção A — túnel rápido (sem deploy)
-
-Com o servidor rodando, em **outro terminal**:
-
-```bash
-npx localtunnel --port 3000
-```
-
-Ele te dá uma URL pública (tipo `https://algo.loca.lt`). O QR Code do painel já aponta pra
-ela — é só projetar. (Alternativa: `ngrok http 3000`.)
-
-### Opção B — hospedar de graça (link fixo)
-
-Suba num serviço gratuito de Node — **Render**, **Railway**, **Glitch** ou **Replit**
-(build `npm install`, start `npm start`). Você recebe uma URL pública fixa.
-
----
-
-## 3. Como o torneio funciona
-
-1. O professor abre o app e clica **Iniciar torneio** → vira o **painel** (QR Code + código da sessão).
-2. Cada aluno **escaneia o QR** (ou abre `.../?sessao=CODIGO`), digita o **nome** e entra.
-3. O professor acompanha a **lista viva** de alunos, pode **Ver alunos** e **Baixar CSV** da presença.
-4. Se quiser jogar também, clica **Também vou jogar** — isso **abre o jogo numa aba nova**; a aba
-   do painel continua mostrando o chaveamento e a lista.
-5. Ao clicar **Iniciar torneio**, o sistema sorteia a **chave** (mata-a-mata, tratando número
-   ímpar com "bye") e roda os confrontos. Entre as partidas, todo mundo vê o chaveamento.
-
-## 4. Como o jogo funciona
-
-- Tabuleiro **4×4**, vitória com **3 em linha** (horizontal, vertical ou diagonal).
-- A cada turno você ganha **mana** (sobe gradualmente até 6) e compra cartas até ter 4 na mão.
-- No seu turno dá pra usar **cartas** (gastam mana) e colocar **uma peça**. Colocar não encerra
-  o turno — você finaliza no botão **Finalizar turno**.
-- **Duas cartas:** **Bloquear** (sela um espaço vazio) e **Apagar** (remove uma peça).
-- **Deu velha** (tabuleiro cheio, ninguém fez 3): ganha quem tiver **mais peças**; se empatar
-  nas peças, a partida é refeita.
-
-## 5. Notas técnicas
-
-- O cliente nunca decide nada: manda a intenção (`place` / `card` / `endTurn`) e o servidor valida
-  e devolve o novo estado. A mão do oponente nunca chega no seu navegador.
-- **Reconexão:** cada navegador tem um id fixo no `localStorage`. Se cair, é só reabrir o link —
-  o servidor te devolve pra mesma partida.
-- Porta configurável: `PORT=8080 npm start`.
-
-Detalhes de arquitetura e dos fluxos estão em **`docs/`**.
+Abra `http://localhost:3000`. Para testar sozinho, abra o painel numa aba e
+`http://localhost:3000/?sessao=CODIGO` em outras duas. Para usar em sala pelo celular, é preciso
+expor o servidor à internet (por exemplo, `npx localtunnel --port 3000`). O passo a passo completo
+está na pasta `docs/`.
